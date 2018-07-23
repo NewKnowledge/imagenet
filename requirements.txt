@@ -1,0 +1,7 @@
+cachetools
+Keras
+numpy
+Pillow
+pytest
+requests
+tensorflow

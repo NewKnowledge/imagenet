@@ -1,0 +1,13 @@
+version: '3'
+
+networks:
+  backend:
+
+services:
+
+  imagenet:
+    build: .
+    networks:
+      - backend
+    volumes:
+      - .:/app
