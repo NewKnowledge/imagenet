@@ -20,6 +20,10 @@ class ImagenetModel:
         self.decode = inception_v3.decode_predictions
 
     def save_url_images(self, image_urls, write_dir='images'):
+        if not os.path.isdir(write_dir):
+            logging.info(f'creating write directory for downloaded images: {write_dir}')
+            os.makedirs(write_dir)
+
         for url in image_urls:
             img = load_image_url(url)
             filename = ''.join([ch for ch in url if str.isalnum(ch)]) + '.png'
