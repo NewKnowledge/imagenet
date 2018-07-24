@@ -1,11 +1,11 @@
 ''' Classes for performing image clustering '''
 
 import logging
-
+import os
 import numpy as np
 from keras.applications import inception_v3
 
-from .image_utils import image_array_from_path, image_array_from_url
+from .image_utils import image_array_from_path, image_array_from_url, load_image_url
 
 
 class ImagenetModel:
@@ -18,6 +18,13 @@ class ImagenetModel:
         self.model = inception_v3.InceptionV3(weights='imagenet', include_top=False)
         self.preprocess = inception_v3.preprocess_input
         self.decode = inception_v3.decode_predictions
+
+    def save_url_images(self, image_urls, write_dir='images'):
+        for url in image_urls:
+            img = load_image_url(url)
+            filename = ''.join([ch for ch in url if str.isalnum(ch)]) + '.png'
+            filepath = os.path.join(write_dir, filename)
+            img.save(filepath)
 
     # TODO cache url/path -> feature funcs?
     def get_features_from_paths(self, image_paths, n_channels=None):
