@@ -5,21 +5,15 @@ import os
 import re
 
 import requests
-from cachetools.func import ttl_cache
 from keras.preprocessing.image import img_to_array, load_img
 from PIL import Image
 
-# NOTE caching allows us to reuse computed image arrays for urls or filepaths
-CACHE_TTL = os.getenv('CACHE_TTL', 3600)
 
-
-@ttl_cache(ttl=CACHE_TTL)
 def image_array_from_path(fpath, target_size=(299, 299)):
     img = load_img(fpath, target_size=target_size)
     return img_to_array(img)
 
 
-@ttl_cache(ttl=CACHE_TTL)
 def image_array_from_url(url, target_size=(299, 299)):
     try:
         img = load_image_url(url, target_size=target_size)
