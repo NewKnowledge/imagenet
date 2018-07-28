@@ -8,8 +8,10 @@ COPY requirements.txt $HOME/
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-# force dockerfile to download InceptionV3 imagenet weights (.h5) into the image to avoid download on spin-up or first use
-RUN python -c "from keras.applications.inception_v3 import InceptionV3; InceptionV3(weights='imagenet', include_top=False)"
+# force dockerfile to download imagenet weights (.h5) into the image to avoid download on spin-up or first use
+RUN python -c "from keras.applications.xception import Xception; Xception(weights='imagenet', include_top=False)"
+# RUN python -c "from keras.applications.inception_v3 import InceptionV3; InceptionV3(weights='imagenet', include_top=False)"
+
 
 COPY . $HOME/
 RUN pip install -e .

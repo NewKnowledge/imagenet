@@ -6,7 +6,9 @@ networks:
 services:
 
   imagenet:
-    build: .
+    build:
+      dockerfile: cpu.dockerfile
+      context: . 
     networks:
       - backend
     volumes:
