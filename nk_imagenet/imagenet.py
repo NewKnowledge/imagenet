@@ -2,14 +2,13 @@
 
 import logging
 import os
-from urllib.parse import urlsplit
 import pickle
 
 import numpy as np
 from cachetools import LRUCache
-from keras.applications import inception_v3, xception, mobilenetv2
+from keras.applications import inception_v3, mobilenetv2, xception
 
-from .utils import image_array_from_path, image_array_from_url, load_image_url, partition
+from .utils import image_array_from_path, image_array_from_url, partition
 
 
 class ImagenetModel:
@@ -50,26 +49,6 @@ class ImagenetModel:
         cache_path = cache_path if cache_path else self.cache_path
         with open(cache_path, 'rb') as pkl_file:
             self.cache = pickle.load(pkl_file)
-
-    def save_url_images(self, image_urls, write_dir='images'):
-        ''' takes a list of urls then downloads and saves the image files to write_dir '''
-        if not os.path.isdir(write_dir):
-            logging.info(f'creating directory for downloaded images: {write_dir}')
-            os.makedirs(write_dir)
-
-        for url in image_urls:
-            try:
-                img = load_image_url(url)
-                if img:
-                    filename = os.path.split(urlsplit(url)[2])[-1]
-                    filepath = os.path.join(write_dir, filename)
-                    if not os.path.isfile(filepath):
-                        img.save(filepath)
-                    else:
-                        logging.warning(f'file {filepath} already present')
-            except OSError as err:
-                logging.error(f'error requesting url: {url}')
-                logging.error(err)
 
     def get_features_from_paths(self, image_paths):
         ''' takes a list of image filepaths and returns the features resulting from applying the imagenet model to those images '''

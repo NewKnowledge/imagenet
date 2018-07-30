@@ -2,8 +2,8 @@
 import io
 import logging
 import os
-import re
 from itertools import filterfalse, tee
+from urllib.parse import urlsplit
 
 import requests
 from keras.preprocessing.image import img_to_array, load_img
@@ -33,7 +33,7 @@ def image_array_from_url(url, target_size=(299, 299)):
 
 def strip_alpha_channel(image):
     ''' Strip the alpha channel of an image and fill with fill color '''
-    background = Image.new(image.mode[:-1], image.size, '#ffffff')
+    background = Image.new(image.mode[:-1], image.size, '#ffffff')  # TODO is filling with black here a good idea?
     background.paste(image, image.split()[-1])
     return background
 
@@ -53,3 +53,24 @@ def load_image_url(url, target_size=None):
             img = img.resize(target_size)  # TODO use interpolation to downsample? (e.g. PIL.Image.LANCZOS)
 
         return img
+
+
+def save_url_images(image_urls, write_dir='images'):
+    ''' takes a list of urls then downloads and saves the image files to write_dir '''
+    if not os.path.isdir(write_dir):
+        logging.info(f'creating directory for downloaded images: {write_dir}')
+        os.makedirs(write_dir)
+
+    for url in image_urls:
+        try:
+            img = load_image_url(url)
+            if img:
+                filename = os.path.split(urlsplit(url)[2])[-1]
+                filepath = os.path.join(write_dir, filename)
+                if not os.path.isfile(filepath):
+                    img.save(filepath)
+                else:
+                    logging.warning(f'file {filepath} already present')
+        except OSError as err:
+            logging.error(f'error requesting url: {url}')
+            logging.error(err)
