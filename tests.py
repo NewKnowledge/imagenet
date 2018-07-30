@@ -32,7 +32,12 @@ def test_featurize_performance():
 
     start_time = time.time()
     feats = model.get_features(image_arrays)
-    print('time to featurize image arrays:', time.time() - start_time)
+    print('time to get features from image arrays:', time.time() - start_time)
+
+    small_model = ImagenetModel(pooling='max')
+    start_time = time.time()
+    feats = small_model.get_features(image_arrays)
+    print('time to get pooled featurize from image arrays:', time.time() - start_time)
 
 
 if __name__ == '__main__':
