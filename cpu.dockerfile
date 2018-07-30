@@ -1,9 +1,11 @@
 FROM ubuntu:16.04
 
 ENV HOME=/root
+WORKDIR $HOME
 
-ENV PYTHON_LIB_PATH=$HOME/anaconda3/lib/python3.6/site-packages \
-    PYTHON_BIN_PATH=$HOME/anaconda3/bin/python \
+ENV PATH=$HOME/miniconda3/bin:$PATH \ 
+    PYTHON_LIB_PATH=$HOME/miniconda3/lib/python3.6/site-packages \
+    PYTHON_BIN_PATH=$HOME/miniconda3/bin/python \
     PYTHONPATH=$HOME/tensorflow/lib \
     PYTHON_ARG=$HOME/tensorflow/lib \
     TF_NEED_GCP=0 \
@@ -23,60 +25,39 @@ ENV PYTHON_LIB_PATH=$HOME/anaconda3/lib/python3.6/site-packages \
     TF_DOWNLOAD_CLANG=0 \
     TF_SET_ANDROID_WORKSPACE=0 \
     CC_OPT_FLAGS="-march=native" \
-    GCC_HOST_COMPILER_PATH=/usr/bin/gcc 
+    GCC_HOST_COMPILER_PATH=/usr/bin/gcc
 
-
-WORKDIR $HOME
-
-# Add a few needed packages to the base Ubuntu 16.04
-# OK, maybe *you* don't need emacs :-)
-RUN \
-    apt-get update && apt-get install -y \
+# Add the repo for bazel and install it and other dependencies
+RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
-    openjdk-8-jdk \
-    && rm -rf /var/lib/lists/*
+    openjdk-8-jdk && \
+    /bin/bash -c "echo 'deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8' > /etc/apt/sources.list.d/bazel.list" && \
+    curl https://bazel.build/bazel-release.pub.gpg | apt-key add - && \   
+    apt-get update && apt-get install -y bazel && \
+    rm -rf /var/lib/lists/* && \
+    curl https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh > /root/Miniconda3-latest-Linux-x86_64.sh && \
+    chmod u+x /root/Miniconda3-latest-Linux-x86_64.sh && \
+    /root/Miniconda3-latest-Linux-x86_64.sh -b && \
+    rm /root/Miniconda3-latest-Linux-x86_64.sh && \
+    /bin/bash -c "source activate base" && \
+    conda update -n base conda && \
+    conda install numpy  
+# install numpy first bc we need it to compile tensorflow
 
-# Add the repo for bazel and install it.
-# RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" >> /etc/apt/sources.list.d/bazel.list
-COPY bazel.list /etc/apt/sources.list.d/
-RUN \
-    curl https://bazel.build/bazel-release.pub.gpg | apt-key add - && \
-    apt-get update && apt-get install -y bazel
+RUN git clone https://github.com/tensorflow/tensorflow /root/tensorflow && \
+    cd /root/tensorflow; ./configure && \
+    bazel build --config=opt --config=mkl //tensorflow/tools/pip_package:build_pip_package && \
+    /bin/bash -c "bazel-bin/tensorflow/tools/pip_package/build_pip_package /root/tensorflow/pip/tensorflow_pkg"
+# RUN bazel clean, shutdown?
 
-COPY Anaconda3-5.2.0-Linux-x86_64.sh /root/
-RUN \
-    cd /root; chmod 755 Anaconda3*.sh && \
-    ./Anaconda3*.sh -b && \
-    echo 'export PATH="$HOME/anaconda3/bin:$PATH"' >> .bashrc && \
-    rm -f Anaconda3*.sh
+# install remaining packages listed in environment.yml including compiled tensorflow
+COPY environment.yml /root/
+RUN conda env update -f /root/environment.yml
 
-# RUN export PATH="/root/anaconda3/bin:$PATH" 
-
-RUN git clone https://github.com/tensorflow/tensorflow /root/tensorflow
-
-RUN /root/tensorflow/configure
-
-ENV PATH=/root/anaconda3/bin:$PATH
-
-RUN echo $PATH
-USER root
-
-RUN /root/anaconda3/bin/conda create -n imagenet && \
-    /bin/bash -c "source activate imagenet"
-# # RUN bazel clean
-RUN cd /root/tensorflow; bazel build --config=opt --config=mkl //tensorflow/tools/pip_package:build_pip_package
-RUN cd /root/tensorflow; /bin/bash -c "bazel-bin/tensorflow/tools/pip_package/build_pip_package /root/tensorflow/pip/tensorflow_pkg"
-RUN pip install /root/tensorflow/pip/tensorflow_pkg/tensorflow-1.9.0-cp36-cp36m-linux_x86_64.whl
-
-COPY requirements.txt $HOME/
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
-
-# # # force dockerfile to download InceptionV3 imagenet weights (.h5) into the image to avoid download on spin-up or first use
-RUN python3 -c "from keras.applications.xception import Xception; Xception(weights='imagenet', include_top=False)"
-# # RUN python3 -c "from keras.applications.inception_v3 import InceptionV3; InceptionV3(weights='imagenet', include_top=False)"
+# force dockerfile to download imagenet weights (.h5) into the image to avoid download on spin-up or first use
+RUN python -c "from keras.applications.xception import Xception; Xception(weights='imagenet', include_top=False)"
 
 COPY . $HOME/
 RUN pip install -e .
