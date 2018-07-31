@@ -1,0 +1,12 @@
+name: base            
+dependencies:
+- python=3.6
+- Pillow
+- requests
+- pytest
+- numpy
+- cython
+- ipython
+- Keras
+- pip:                
+  - cachetools
