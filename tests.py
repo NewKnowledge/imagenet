@@ -3,7 +3,8 @@ import numpy as np
 from glob import glob
 import time
 
-model = ImagenetModel()
+full_model = ImagenetModel()
+pool_model = ImagenetModel(pooling='max')
 
 
 def test_features_from_urls():
@@ -12,14 +13,16 @@ def test_features_from_urls():
 
     # call method with all new, mixed new and cached, all cached urls
     for urls in [test_urls[:2], test_urls, test_urls]:
-        features, urls = model.get_features_from_urls(urls)
-        assert isinstance(urls, list)
-        assert len(urls) > 0 and isinstance(urls[0], str)
+        for model in [full_model, pool_model]:
+            features, urls = model.get_features_from_urls(urls)
 
-        assert isinstance(features, np.ndarray)
-        assert features.shape[0] == len(urls)
-        assert features.shape[1] > 1
-        assert str(features.dtype)[:5] == 'float'
+            assert isinstance(urls, list)
+            assert len(urls) > 0 and isinstance(urls[0], str)
+
+            assert isinstance(features, np.ndarray)
+            assert features.shape[0] == len(urls)
+            assert features.shape[1] > 1
+            assert str(features.dtype)[:5] == 'float'
 
 
 def test_featurize_performance():
@@ -31,12 +34,11 @@ def test_featurize_performance():
     print('time to load images as arrays:', time.time() - start_time)
 
     start_time = time.time()
-    feats = model.get_features(image_arrays)
+    feats = full_model.get_features(image_arrays)
     print('time to get features from image arrays:', time.time() - start_time)
 
-    small_model = ImagenetModel(pooling='max')
     start_time = time.time()
-    feats = small_model.get_features(image_arrays)
+    feats = pool_model.get_features(image_arrays)
     print('time to get pooled featurize from image arrays:', time.time() - start_time)
 
 
