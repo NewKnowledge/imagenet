@@ -19,6 +19,7 @@ class ImagenetModel:
         self.target_size = target_size
         self.n_channels = n_channels
         self.cache_path = cache_path  # can be set to None to not load cache even if default file is present
+        # TODO put pooling, model, n_channels, etc into cache filename?
 
         if self.cache_path and os.path.isfile(self.cache_path):
             self.load_cache()
@@ -40,21 +41,18 @@ class ImagenetModel:
         else:
             raise Exception('model option not implemented')
 
-        # image_net = ImagenetModel()
         # NOTE: we force the imagenet model to load in the same scope as the functions using it to avoid tensorflow weirdness
         self.model.predict(np.zeros((1, *target_size, 3)))
         logging.info('imagenet loaded')
 
-    # # TODO add predict fn
-    # def predict(image_array):
-    #     return self.model.predict(image_array)
-
     def save_cache(self, cache_path=None):
+        ''' saves cache of image identifier (url or path) to image features at the given cache path '''
         cache_path = cache_path if cache_path else self.cache_path
         with open(cache_path, 'wb') as pkl_file:
             pickle.dump(self.cache, pkl_file)
 
     def load_cache(self, cache_path=None):
+        ''' loads cache of image identifier (url or path) to image features '''
         cache_path = cache_path if cache_path else self.cache_path
         with open(cache_path, 'rb') as pkl_file:
             self.cache = pickle.load(pkl_file)
@@ -96,16 +94,16 @@ class ImagenetModel:
             else:
                 new_image_features = []
 
-        if len(cached_image_features) > 0 and len(new_image_features) > 0:
+        if cached_urls and new_urls:
             logging.debug('cached and new')
             # combine results
             image_features = np.vstack((cached_image_features, new_image_features))
             image_urls = cached_urls + new_urls
-        elif len(cached_image_features) > 0:
+        elif cached_urls:
             logging.debug('cached')
             image_features = cached_image_features
             image_urls = cached_urls
-        elif len(new_image_features) > 0:
+        elif new_urls:
             logging.debug('new')
             image_features = new_image_features
             image_urls = new_urls
@@ -132,3 +130,7 @@ class ImagenetModel:
         shape = image_features.shape
         logging.debug(f'reshaping from {shape}')
         return image_features.reshape(shape[0], np.prod(shape[1:]))
+
+    def predict(self, images_array):
+        ''' alias for get_features to more closely match scikit-learn interface '''
+        return self.get_features(images_array)

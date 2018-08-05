@@ -41,6 +41,8 @@ def test_featurize_performance():
     feats = pool_model.get_features(image_arrays)
     print('time to get pooled featurize from image arrays:', time.time() - start_time)
 
+# TODO test handling of failed urls
+
 
 if __name__ == '__main__':
     test_features_from_urls()
