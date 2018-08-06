@@ -63,10 +63,22 @@ class ImagenetModel:
         images_array = np.array((image_array_from_path(fpath, target_size=self.target_size) for fpath in image_paths))
         return self.get_features(images_array)
 
-    def get_features_from_urls(self, image_urls):
+    def get_features_from_url(self, image_url):
+        ''' attempt to download the image at the given url, then return the imagenet features if successful, and None if not '''
+        if image_url in self.cache:
+            return self.cache[image_url]
+        else:
+            image_array = image_array_from_url(image_url, target_size=self.target_size)
+            if image_array is not None:
+                if image_array.ndim == 3:
+                    image_array = image_array[None, :, :, :]
+                return self.get_features(image_array)
+
+    def get_features_from_url_batch(self, image_urls):
         ''' takes a list of image urls and returns the features resulting from applying the imagenet model to
-        successfully downloaded images along with the urls that were successful.
+        successfully downloaded images along with the urls that were successful. Cached values are used when available 
         '''
+        # split urls into new ones and ones that have cached results
         new_urls, cached_urls = partition(lambda x: x in self.cache, image_urls, as_list=True)
         logging.info(f'getting image arrays from {len(image_urls)} urls')
 
@@ -75,26 +87,24 @@ class ImagenetModel:
             cached_image_features = np.array([self.cache[url] for url in cached_urls])
 
         if new_urls:
-
             logging.info(f'computing features for {len(new_urls)} images from urls')
-            # attempt to download images and convert to constant-size arrays
+            # attempt to download images and convert to constant-size arrays  # TODO what to do with failed urls, try again, cache failure?
             new_image_arrays = (image_array_from_url(url, target_size=self.target_size) for url in new_urls)
-            # filter out unsuccessful image urls which output None in the list of  # TODO this could probably be optimized
-            url_to_image = {url: img for url, img in zip(new_urls, new_image_arrays) if img is not None}
-            new_image_arrays = np.array(list(url_to_image.values()))
-            new_urls = list(url_to_image.keys())
+            # filter out unsuccessful image urls which output None
+            downloaded_images = [(url, img) for url, img in zip(new_urls, new_image_arrays) if img is not None]
+            if downloaded_images:
+                # unzip any successful url, img pairs and convert data types
+                new_urls, new_image_arrays = zip(*downloaded_images)
+                new_urls = list(new_urls)
+                new_image_arrays = np.array(new_image_arrays)
 
-            # TODO keep track of failed urls
-            if len(new_image_arrays) > 0:
                 logging.debug('getting features from image arrays')
                 new_image_features = self.get_features(new_image_arrays)
                 # add new image features to cache
                 logging.debug('saving features to cache')
                 self.cache.update(zip(new_urls, new_image_features))
-            else:
-                new_image_features = []
 
-        if cached_urls and new_urls:
+        if cached_urls and new_urls and downloaded_images:
             logging.debug('cached and new')
             # combine results
             image_features = np.vstack((cached_image_features, new_image_features))
@@ -103,13 +113,13 @@ class ImagenetModel:
             logging.debug('cached')
             image_features = cached_image_features
             image_urls = cached_urls
-        elif new_urls:
+        elif new_urls and downloaded_images:
             logging.debug('new')
             image_features = new_image_features
             image_urls = new_urls
         else:
             logging.warning('no new or cached urls')
-            return [], []
+            return np.array([]), []
 
         return image_features, image_urls
 
@@ -128,7 +138,6 @@ class ImagenetModel:
 
         # reshape output array by flattening each image into a vector of features
         shape = image_features.shape
-        logging.debug(f'reshaping from {shape}')
         return image_features.reshape(shape[0], np.prod(shape[1:]))
 
     def predict(self, images_array):
