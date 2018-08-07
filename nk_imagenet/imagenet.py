@@ -23,8 +23,10 @@ class ImagenetModel:
     ''' A class for featurizing images using pre-trained neural nets '''
 
     def __init__(self, pooling=None, n_channels=None, cache_size=int(1e4), model='inception_v3', cache_dir='.'):
-        self.n_channels = n_channels
 
+        self.n_channels = n_channels
+        self.failed_urls = set()
+        # NOTE: set cache_dir to None to turn off caching
         if cache_dir:
             # create default cache path in the current file dir w/ filename specifying config
             config = [str(cache_size), model, str(pooling) if pooling else '', str(n_channels) if n_channels else '']
@@ -70,7 +72,7 @@ class ImagenetModel:
         logging.info('saving cache')
         cache_path = cache_path if cache_path else self.cache_path
         with open(cache_path, 'wb') as pkl_file:
-            pickle.dump(self.cache, pkl_file)
+            pickle.dump({'cache': self.cache, 'failed_urls': self.failed_urls}, pkl_file)
 
     def load_cache(self, cache_path=None):
         ''' loads cache of image identifier (url or path) to image features '''
@@ -80,8 +82,12 @@ class ImagenetModel:
             logging.error(f'cache file not present at: {cache_path}')
         else:
             with open(cache_path, 'rb') as pkl_file:
-                self.cache = pickle.load(pkl_file)
-            logging.info(f'successfully loaded cache with {len(self.cache)} entries')
+                pkl_data = pickle.load(pkl_file)
+                self.cache = pkl_data['cache']
+                self.failed_urls = pkl_data['failed_urls']
+
+            logging.info(f'successfully loaded cache with {len(self.cache)} entries \
+                         and failed urls with {len(self.failed_urls)} entries')
 
     def get_features_from_paths(self, image_paths):
         ''' takes a list of image filepaths and returns the features resulting from applying the imagenet model to those images '''
@@ -100,7 +106,7 @@ class ImagenetModel:
                     image_array = image_array[None, :, :, :]
                 return self.get_features(image_array)
 
-    def get_features_from_url_batch(self, image_urls):
+    def get_features_from_url_batch(self, image_urls, ignore_failed=True):
         ''' takes a list of image urls and returns the features resulting from applying the imagenet model to
         successfully downloaded images along with the urls that were successful. Cached values are used when available
         '''
@@ -112,12 +118,22 @@ class ImagenetModel:
             logging.info(f'loading features for {len(cached_urls)} images from cache')
             cached_image_features = np.array([self.cache[url] for url in cached_urls])
 
+        # remove new urls known to fail
+        if new_urls and ignore_failed:
+            new_urls = list(filter(lambda x: x not in self.failed_urls, new_urls))
+
         if new_urls:
             logging.info(f'computing features for {len(new_urls)} images from urls')
             # attempt to download images and convert to constant-size arrays  # TODO what to do with failed urls, try again, cache failure?
             new_image_arrays = (image_array_from_url(url, target_size=self.target_size) for url in new_urls)
+
             # filter out unsuccessful image urls which output None
-            downloaded_images = [(url, img) for url, img in zip(new_urls, new_image_arrays) if img is not None]
+            failed_images, downloaded_images = partition(
+                lambda x: x is not None, zip(new_urls, new_image_arrays), as_list=True)
+            # add failed urls to list
+            self.failed_urls.update(pair[0] for pair in failed_images)
+            # downloaded_images = [(url, img) for url, img in zip(new_urls, new_image_arrays) if img is not None]
+
             if downloaded_images:
                 # unzip any successful url, img pairs and convert data types
                 new_urls, new_image_arrays = zip(*downloaded_images)
