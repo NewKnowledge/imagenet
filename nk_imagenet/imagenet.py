@@ -22,18 +22,18 @@ class ImagenetModel:
 
     ''' A class for featurizing images using pre-trained neural nets '''
 
-    def __init__(self, pooling=None, n_channels=None, cache_size=int(1e4), model='inception_v3', cache_path='default'):
+    def __init__(self, pooling=None, n_channels=None, cache_size=int(1e4), model='inception_v3', cache_dir='.'):
         self.n_channels = n_channels
 
-        if cache_path == 'default':
+        if cache_dir:
             # create default cache path in the current file dir w/ filename specifying config
             config = [str(cache_size), model, str(pooling) if pooling else '', str(n_channels) if n_channels else '']
             config_str = '-'.join([c for c in config if c])  # filter out empty strings and join w/ -
             cache_fname = f'imagenet-cache-{config_str}.pkl'
-            self.cache_path = cache_fname
+            self.cache_path = os.path.join(cache_dir, cache_fname)
             # TODO allow larger cache_size to still load from previous smaller caches
         else:
-            self.cache_path = cache_path
+            self.cache_path = None
 
         if self.cache_path and os.path.isfile(self.cache_path):
             self.load_cache()
