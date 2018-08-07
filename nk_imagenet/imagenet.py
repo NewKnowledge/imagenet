@@ -129,7 +129,7 @@ class ImagenetModel:
 
             # filter out unsuccessful image urls which output None
             failed_images, downloaded_images = partition(
-                lambda x: x is not None, zip(new_urls, new_image_arrays), as_list=True)
+                lambda x: x[1] is not None, zip(new_urls, new_image_arrays), as_list=True)
             # add failed urls to list
             self.failed_urls.update(pair[0] for pair in failed_images)
             # downloaded_images = [(url, img) for url, img in zip(new_urls, new_image_arrays) if img is not None]
@@ -138,6 +138,7 @@ class ImagenetModel:
                 # unzip any successful url, img pairs and convert data types
                 new_urls, new_image_arrays = zip(*downloaded_images)
                 new_urls = list(new_urls)
+                print('new image arrays:', new_image_arrays[:2])
                 new_image_arrays = np.array(new_image_arrays)
 
                 logging.debug('getting features from image arrays')
