@@ -162,7 +162,7 @@ class ImagenetModel:
             image_urls = new_urls
         else:
             logging.warning('no new or cached urls')
-            return np.array([]), []
+            return np.array([[]]), []
 
         return image_features, image_urls
 
