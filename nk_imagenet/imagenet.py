@@ -112,10 +112,10 @@ class ImagenetModel:
         '''
         # split urls into new ones and ones that have cached results
         new_urls, cached_urls = partition(lambda x: x in self.cache, image_urls, as_list=True)
-        logging.info(f'getting image arrays from {len(image_urls)} urls')
-
+        logging.warning(f'getting image arrays from {len(image_urls)} urls')
+        logging.warning(f'{len(new_urls)} new urls and {len(cached_urls)} cached urls')
         if cached_urls:
-            logging.info(f'loading features for {len(cached_urls)} images from cache')
+            logging.warning(f'loading features for {len(cached_urls)} images from cache')
             cached_image_features = np.array([self.cache[url] for url in cached_urls])
 
         # remove new urls known to fail
@@ -138,26 +138,25 @@ class ImagenetModel:
                 # unzip any successful url, img pairs and convert data types
                 new_urls, new_image_arrays = zip(*downloaded_images)
                 new_urls = list(new_urls)
-                print('new image arrays:', new_image_arrays[:2])
                 new_image_arrays = np.array(new_image_arrays)
 
-                logging.debug('getting features from image arrays')
+                logging.warning('getting features from image arrays')
                 new_image_features = self.get_features(new_image_arrays)
                 # add new image features to cache
-                logging.debug('saving features to cache')
+                logging.warning('saving features to cache')
                 self.cache.update(zip(new_urls, new_image_features))
 
         if cached_urls and new_urls and downloaded_images:
-            logging.debug('cached and new')
+            logging.warning('cached and new')
             # combine results
             image_features = np.vstack((cached_image_features, new_image_features))
             image_urls = cached_urls + new_urls
         elif cached_urls:
-            logging.debug('cached')
+            logging.warning('cached')
             image_features = cached_image_features
             image_urls = cached_urls
         elif new_urls and downloaded_images:
-            logging.debug('new')
+            logging.warning('new')
             image_features = new_image_features
             image_urls = new_urls
         else:
@@ -170,12 +169,12 @@ class ImagenetModel:
         ''' takes a batch of images as a 4-d array and returns the (flattened) imagenet features for those images as a 2-d array '''
         if images_array.ndim != 4:
             raise Exception('invalid input shape for images_array, expects a 4d array')
-        logging.debug(f'preprocessing {images_array.shape[0]} images')
+        logging.warning(f'preprocessing {images_array.shape[0]} images')
         images_array = self.preprocess(images_array)
-        logging.debug(f'computing image features')
+        logging.warning(f'computing image features')
         image_features = self.model.predict(images_array)
         if self.n_channels:
-            logging.debug(f'truncating to first {self.n_channels} channels')
+            logging.warning(f'truncating to first {self.n_channels} channels')
             # if n_channels is specified, only keep that number of channels
             image_features = image_features.T[: self.n_channels].T
 
