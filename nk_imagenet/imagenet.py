@@ -10,16 +10,30 @@ from keras.applications import inception_v3, mobilenetv2, xception
 
 from .utils import image_array_from_path, image_array_from_url, partition
 
+logging.basicConfig(
+    format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
+    handlers=[
+        # logging.FileHandler(f"{logPath}/{fileName}.log"),
+        logging.StreamHandler()
+    ])
+
 
 class ImagenetModel:
 
     ''' A class for featurizing images using pre-trained neural nets '''
 
-    def __init__(self, target_size=(299, 299), pooling=None, n_channels=None, cache_size=1e4, model='xception', cache_path='imagenet-cache.pkl'):
-        self.target_size = target_size
+    def __init__(self, pooling=None, n_channels=None, cache_size=int(1e4), model='inception_v3', cache_path='default'):
         self.n_channels = n_channels
-        self.cache_path = cache_path  # can be set to None to not load cache even if default file is present
-        # TODO put pooling, model, n_channels, etc into cache filename?
+
+        if cache_path == 'default':
+            # create default cache path in the current file dir w/ filename specifying config
+            config = [str(cache_size), model, str(pooling) if pooling else '', str(n_channels) if n_channels else '']
+            config_str = '-'.join([c for c in config if c])  # filter out empty strings and join w/ -
+            cache_fname = f'imagenet-cache-{config_str}.pkl'
+            self.cache_path = cache_fname
+            # TODO allow larger cache_size to still load from previous smaller caches
+        else:
+            self.cache_path = cache_path
 
         if self.cache_path and os.path.isfile(self.cache_path):
             self.load_cache()
@@ -30,29 +44,37 @@ class ImagenetModel:
             self.model = xception.Xception(weights='imagenet', include_top=False, pooling=pooling)
             self.preprocess = xception.preprocess_input
             self.decode = xception.decode_predictions
+            self.target_size = (299, 299)
+            self.output_dim = (n_channels if n_channels else 2048) * (1 if pooling else 10**2)
         elif model == 'inception_v3':
             self.model = inception_v3.InceptionV3(weights='imagenet', include_top=False, pooling=pooling)
             self.preprocess = inception_v3.preprocess_input
             self.decode = inception_v3.decode_predictions
+            self.target_size = (299, 299)
+            self.output_dim = (n_channels if n_channels else 2048) * (1 if pooling else 8**2)
         elif model == 'mobilenet_v2':
             self.model = mobilenetv2.MobileNetV2(weights='imagenet', include_top=False, pooling=pooling)
             self.preprocess = mobilenetv2.preprocess_input
             self.decode = mobilenetv2.decode_predictions
+            self.target_size = (244, 244)
+            self.output_dim = (n_channels if n_channels else 1280) * (1 if pooling else 7**2)
         else:
             raise Exception('model option not implemented')
 
         # NOTE: we force the imagenet model to load in the same scope as the functions using it to avoid tensorflow weirdness
-        self.model.predict(np.zeros((1, *target_size, 3)))
+        self.model.predict(np.zeros((1, *self.target_size, 3)))
         logging.info('imagenet loaded')
 
     def save_cache(self, cache_path=None):
         ''' saves cache of image identifier (url or path) to image features at the given cache path '''
+        logging.info('saving cache')
         cache_path = cache_path if cache_path else self.cache_path
         with open(cache_path, 'wb') as pkl_file:
             pickle.dump(self.cache, pkl_file)
 
     def load_cache(self, cache_path=None):
         ''' loads cache of image identifier (url or path) to image features '''
+        logging.info('loading cache')
         cache_path = cache_path if cache_path else self.cache_path
         with open(cache_path, 'rb') as pkl_file:
             self.cache = pickle.load(pkl_file)
@@ -76,7 +98,7 @@ class ImagenetModel:
 
     def get_features_from_url_batch(self, image_urls):
         ''' takes a list of image urls and returns the features resulting from applying the imagenet model to
-        successfully downloaded images along with the urls that were successful. Cached values are used when available 
+        successfully downloaded images along with the urls that were successful. Cached values are used when available
         '''
         # split urls into new ones and ones that have cached results
         new_urls, cached_urls = partition(lambda x: x in self.cache, image_urls, as_list=True)
