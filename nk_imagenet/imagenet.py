@@ -13,8 +13,8 @@ from .utils import image_array_from_path, image_array_from_url, partition
 logging.basicConfig(
     format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
     handlers=[
-        # logging.FileHandler(f"{logPath}/{fileName}.log"),
         logging.StreamHandler()
+        # logging.FileHandler(f"{logPath}/{fileName}.log"),
     ])
 
 
@@ -74,10 +74,14 @@ class ImagenetModel:
 
     def load_cache(self, cache_path=None):
         ''' loads cache of image identifier (url or path) to image features '''
-        logging.info('loading cache')
         cache_path = cache_path if cache_path else self.cache_path
-        with open(cache_path, 'rb') as pkl_file:
-            self.cache = pickle.load(pkl_file)
+        logging.info(f'loading cache from {cache_path}')
+        if not os.path.isfile(cache_path):
+            logging.error(f'cache file not present at: {cache_path}')
+        else:
+            with open(cache_path, 'rb') as pkl_file:
+                self.cache = pickle.load(pkl_file)
+            logging.info(f'successfully loaded cache with {len(self.cache)} entries')
 
     def get_features_from_paths(self, image_paths):
         ''' takes a list of image filepaths and returns the features resulting from applying the imagenet model to those images '''
