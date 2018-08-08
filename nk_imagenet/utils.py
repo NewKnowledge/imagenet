@@ -28,7 +28,7 @@ def image_array_from_url(url, target_size=(299, 299)):
         img = load_image_url(url, target_size=target_size)
         return img_to_array(img)
     except Exception as err:
-        logging.info(f'\n\nerror reading url:\n {err}')
+        logging.warning(f'\nerror reading url:\n {err}')
 
 
 def strip_alpha_channel(image):
@@ -72,5 +72,4 @@ def save_url_images(image_urls, write_dir='images'):
                 else:
                     logging.warning(f'file {filepath} already present')
         except OSError as err:
-            logging.error(f'error requesting url: {url}')
-            logging.error(err)
+            logging.warning(f'\nerror requesting url {url}: \n{err}')
