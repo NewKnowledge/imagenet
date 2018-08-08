@@ -28,7 +28,7 @@ def image_array_from_url(url, target_size=(299, 299)):
         img = load_image_url(url, target_size=target_size)
         return img_to_array(img)
     except Exception as err:
-        logging.error(f'\n\nerror reading url:\n {err}')
+        logging.info(f'\n\nerror reading url:\n {err}')
 
 
 def strip_alpha_channel(image):
