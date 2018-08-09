@@ -1,13 +1,17 @@
-__pycache__/*
+__pycache__/
+
+node_modules
+package-lock.json
 
 .vscode
-lib
-venv
+.keras
+
+*.npy
+*.zip
+*.env
 
 .gitignore
 Dockerfile
-dockerfile
-*.dockerfile
+*dockerfile
 Jenkinsfile
-include
-*.env
+
