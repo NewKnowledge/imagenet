@@ -9,6 +9,7 @@ import requests
 from keras.preprocessing.image import img_to_array, load_img
 from PIL import Image
 
+requests_session = requests.Session() if os.environ.get('USE_REQUESTS_SESSION') == "True" else requests
 
 def partition(pred, iterable, as_list=False):
     'Use a predicate to partition entries into false entries and true entries'
@@ -40,7 +41,7 @@ def strip_alpha_channel(image):
 
 def load_image_url(url, target_size=None):
     ''' downloads image at url, fills transparency, convert to jpeg format, and resamples to target size before returning PIL image object '''
-    response = requests.get(url)
+    response = requests_session.get(url)
     with Image.open(io.BytesIO(response.content)) as img:
         # fill transparency if needed
         if img.mode in ('RGBA', 'LA'):
