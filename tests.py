@@ -3,8 +3,8 @@ import numpy as np
 from glob import glob
 import time
 
-full_model = ImagenetModel()
-pool_model = ImagenetModel(pooling='max')
+full_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
+pool_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
 
 
 test_urls = ["https://i.redd.it/677lnhjyt5dz.jpg", "https://i.redd.it/c2kkan9uky7z.png",
@@ -43,6 +43,32 @@ def test_features_from_url_batch():
             assert features.shape[1] > 1
             assert str(features.dtype)[:5] == 'float'
 
+
+def test_cache_serialization():
+    features, urls = full_model.get_features_from_url_batch(test_urls)
+    full_model.save_cache()
+
+    new_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
+    assert len(new_model.cache) > 0
+    # pool_model = ImagenetModel(model='mobilenet_v2', pooling='max')
+    # = ImagenetModel()
+    print(new_model.cache)
+
+
+# NOTE obj recog tests dont work when running feature tests above, TODO fix interference from cache
+# def test_object_recognition():
+#     obj_model = ImagenetModel(include_top=True)
+#     objects = obj_model.get_objects_from_url(test_urls[0])
+#     print(objects)
+#     print(obj_model.cache)
+
+
+# if __name__ == '__main__':
+    # test_cache_serialization()
+    # test_object_recognition()
+
+
+# def test_all_models():
 
 # def test_featurize_performance():
 

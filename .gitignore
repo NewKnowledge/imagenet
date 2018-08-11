@@ -1,11 +1,15 @@
-*.h5
 *.DS_Store
 *.env
-.keras
-.pytest_cache
+*.h5
+*.pkl
+*.npy
+*.npz
 *.jpg
 *.jpeg
 *.png
+.pytest_cache
+.vscode
+.keras
 images
 
 # Byte-compiled / optimized / DLL files
