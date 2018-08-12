@@ -4,12 +4,23 @@ import logging
 import os
 from itertools import filterfalse, tee
 from urllib.parse import urlsplit
+import sys
 
 import requests
 from keras.preprocessing.image import img_to_array, load_img
 from PIL import Image
 
-requests_session = requests.Session() if os.environ.get('USE_REQUESTS_SESSION') == "True" else requests
+USE_REQUEST_SESSION = os.environ.get('USE_REQUESTS_SESSION', "True")
+requests_session = requests.Session() if USE_REQUEST_SESSION == "True" else requests
+
+DEPLOYMENT = os.environ.get("DEPLOYMENT", "dev")
+LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.DEBUG if DEPLOYMENT == "dev" else logging.INFO)
+
+logging.basicConfig(
+    level=LOG_LEVEL,
+    stream=sys.stdout,
+)
+
 
 def partition(pred, iterable, as_list=False):
     'Use a predicate to partition entries into false entries and true entries'

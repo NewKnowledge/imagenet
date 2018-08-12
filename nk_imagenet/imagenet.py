@@ -1,5 +1,4 @@
 ''' Classes for performing image clustering '''
-
 import logging
 import os
 import pickle
@@ -10,21 +9,14 @@ from keras.applications import inception_v3, mobilenetv2, xception
 
 from .utils import image_array_from_path, image_array_from_url, partition
 
-# NUM_OBJECTS = int(os.getenv('NUM_OBJECTS', '5'))
-
-logging.basicConfig(
-    format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
-    handlers=[
-        logging.StreamHandler()
-    ])
-# logging.FileHandler(f"{logPath}/{fileName}.log"),
+logger = logging.getLogger(__name__)
 
 
 class ImagenetModel:
 
     ''' A class for featurizing images using pre-trained neural nets '''
 
-    def __init__(self, include_top=False, pooling=None, n_channels=None, cache_size=int(1e4), model='inception_v3', cache_dir=None, n_objects=None):
+    def __init__(self, model='inception_v3', include_top=False, pooling=None, n_channels=None, n_objects=None, cache_size=int(1e4), cache_dir=None):
 
         self.include_top = include_top  # determines if used for classification or featurization, TODO separate into two classes?
         self.n_channels = n_channels
@@ -32,10 +24,10 @@ class ImagenetModel:
 
         self.failed_urls = set()
 
-        # NOTE: set cache_dir to None to turn off caching
+        # NOTE: set cache_dir to None to turn off caching (off by default)
         if cache_dir:
             # create default cache path in the current file dir w/ filename specifying config
-            config = [f'objects-{NUM_OBJECTS}' if include_top else 'features', str(cache_size), model,
+            config = [f'objects-{self.n_objects}' if include_top else 'features', str(cache_size), model,
                       pooling if pooling else '', str(n_channels) if n_channels else '']
             config_str = '-'.join([c for c in config if c])  # filter out empty strings and join w/ -
             cache_fname = f'imagenet-cache-{config_str}.pkl'
@@ -78,11 +70,11 @@ class ImagenetModel:
 
         # NOTE: we force the imagenet model to load in the same scope as the functions using it to avoid tensorflow weirdness
         self.model.predict(np.zeros((1, *self.target_size, 3)))
-        logging.info('imagenet loaded')
+        logger.info('imagenet loaded')
 
     def save_cache(self, cache_path=None):
         ''' saves cache of image identifier (url or path) to image features at the given cache path '''
-        logging.info('saving cache')
+        logger.info('saving cache')
         cache_path = cache_path if cache_path else self.cache_path
         with open(cache_path, 'wb') as pkl_file:
             pickle.dump({'cache': self.cache, 'failed_urls': self.failed_urls}, pkl_file)
@@ -90,16 +82,16 @@ class ImagenetModel:
     def load_cache(self, cache_path=None):
         ''' loads cache of image identifier (url or path) to image features '''
         cache_path = cache_path if cache_path else self.cache_path
-        logging.info(f'loading cache from {cache_path}')
+        logger.info(f'loading cache from {cache_path}')
         if not os.path.isfile(cache_path):
-            logging.error(f'cache file not present at: {cache_path}')
+            logger.error(f'cache file not present at: {cache_path}')
         else:
             with open(cache_path, 'rb') as pkl_file:
                 pkl_data = pickle.load(pkl_file)
                 self.cache = pkl_data['cache']
                 self.failed_urls = pkl_data['failed_urls']
 
-            logging.info(f'successfully loaded cache with {len(self.cache)} entries \
+            logger.info(f'successfully loaded cache with {len(self.cache)} entries \
                          and failed urls with {len(self.failed_urls)} entries')
 
     def get_objects_from_url(self, image_url, ignore_failed=True):
@@ -127,12 +119,12 @@ class ImagenetModel:
         return self.cache[image_url]
 
     def get_objects(self, image_array):
-        ''' detects objects in image provided as an array '''
-        logging.debug(f'recognizing objects')
+        ''' detects objects in an image provided as an array '''
+        logger.debug(f'recognizing objects')
         image_array = self.preprocess(image_array)
         objects = self.model.predict(image_array)
         objects = self.decode(objects, top=self.n_objects)[0]
-        return {obj[1]: obj[2] for obj in objects}  # objects = [{'object': obj[1], 'score': obj[2]} for obj in objects]
+        return {obj[1]: obj[2] for obj in objects}  # {concept: score}
 
     def get_features_from_paths(self, image_paths):
         ''' takes a list of image filepaths and returns the features resulting from applying the imagenet model to those images '''
@@ -166,42 +158,22 @@ class ImagenetModel:
         if self.include_top:
             raise Exception('getting features from a classification model with include_top=True is currently not supported')
         # split urls into new ones and ones that have cached results
-        new_urls = image_urls
-        cached_urls = []
-        # new_urls, cached_urls = partition(lambda x: x in self.cache, image_urls, as_list=True)
-        logging.info(f'getting image arrays from {len(image_urls)} urls; \
+        new_urls, cached_urls = partition(lambda x: x in self.cache, image_urls, as_list=True)
+        logger.info(f'getting image arrays from {len(image_urls)} urls; \
                      {len(new_urls)} new urls and {len(cached_urls)} cached urls')
         if cached_urls:
-            logging.debug(f'loading features for {len(cached_urls)} images from cache')
-            if len(cached_urls) == 1:
-                cached_image_features = self.cache[cached_urls[0]]
-                # print('pre cached dim:', cached_image_features.ndim)
-                # if cached_image_features.ndim == 1:
-                #     cached_image_features = cached_image_features[None, :]
-                # elif cached_image_features.ndim == 3:
-                #     assert cached_image_features.shape[:1] == (1, 1)
-                #     cached_image_features = cached_image_features[0, :, :]
-                # print('post cached dim:', cached_image_features.ndim)
-                assert cached_image_features.ndim == 2
-            else:
-                cached_image_features = np.array([self.cache[url] for url in cached_urls])
-                # print('pre cached dim:', cached_image_features.ndim)
-                # if cached_image_features.ndim == 1:
-                #     cached_image_features = cached_image_features[None, :]
-                # elif cached_image_features.ndim == 3:
-                #     assert cached_image_features.shape[:1] == (1, 1)
-                #     cached_image_features = cached_image_features[0, :, :]
-                # print('cached dim:', cached_image_features.ndim)
-                assert cached_image_features.ndim == 2
-            # print('cached dim:', cached_image_features.ndim)
+            logger.debug(f'loading features for {len(cached_urls)} images from cache')
+            cached_image_features = np.array((self.cache[url] for url in cached_urls))
+            print('cached image feat:', cached_image_features)
+            assert cached_image_features.ndim == 2
 
         # remove new urls known to fail
         if new_urls and ignore_failed:
-            logging.debug(f'num new urls before dopping fails: {len(new_urls)}')
+            logger.debug(f'num new urls before dopping fails: {len(new_urls)}')
             new_urls = list(filter(lambda x: x not in self.failed_urls, new_urls))
 
         if new_urls:
-            logging.debug(f'computing features for {len(new_urls)} images from urls')
+            logger.debug(f'computing features for {len(new_urls)} images from urls')
             # attempt to download images and convert to constant-size arrays  # TODO what to do with failed urls, try again, cache failure?
             new_image_arrays = (image_array_from_url(url, target_size=self.target_size) for url in new_urls)
 
@@ -209,10 +181,10 @@ class ImagenetModel:
             failed_images, downloaded_images = partition(
                 lambda x: x[1] is not None, zip(new_urls, new_image_arrays), as_list=True)
 
-            logging.debug(f'found {len(failed_images)} failed url images')
-            logging.info(f'successfully downloaded {len(downloaded_images)} url images')
+            logger.debug(f'found {len(failed_images)} failed url images')
+            logger.info(f'successfully downloaded {len(downloaded_images)} url images')
             # add failed urls to list
-            logging.debug('saving failed urls to failed set')
+            logger.debug('saving failed urls to failed set')
             self.failed_urls.update(pair[0] for pair in failed_images)
             # downloaded_images = [(url, img) for url, img in zip(new_urls, new_image_arrays) if img is not None]
 
@@ -222,32 +194,31 @@ class ImagenetModel:
                 new_urls = list(new_urls)
                 new_image_arrays = np.array(new_image_arrays)
 
-                logging.debug(f'getting features from image arrays with shape {new_image_arrays.shape}')
+                logger.debug(f'getting features from image arrays with shape {new_image_arrays.shape}')
                 new_image_features = self.get_features(new_image_arrays)
-                assert new_image_features.ndim == 2
-                logging.debug(f'got features array with shape {new_image_features.shape}')
+                if new_image_features.ndim == 1:
+                    # add a dimension to work with cache update zip
+                    new_image_features = new_image_features[None, :]
+                logger.debug(f'got features array with shape {new_image_features.shape}')
                 # add new image features to cache
-                logging.info('saving features to cache')
-
+                logger.info('saving features to cache')
                 self.cache.update(zip(new_urls, new_image_features))
 
         if cached_urls and new_urls and downloaded_images:
-            # print('cached:', cached_image_features.shape)
-            # print('new: ', new_image_features.shape)
-            logging.debug('cached and new')
+            logger.debug('cached and new')
             # combine results
             image_features = np.vstack((cached_image_features, new_image_features))
             image_urls = cached_urls + new_urls
         elif cached_urls:
-            logging.debug('cached')
+            logger.debug('cached')
             image_features = cached_image_features
             image_urls = cached_urls
         elif new_urls and downloaded_images:
-            logging.debug('new')
+            logger.debug('new')
             image_features = new_image_features
             image_urls = new_urls
         else:
-            logging.debug('no new or cached urls')
+            logger.debug('no new or cached urls')
             return np.array([[]]), []
 
         return image_features, image_urls
@@ -261,20 +232,28 @@ class ImagenetModel:
             raise Exception('invalid input shape for images_array, expects a 4d array')
 
         # preprocess and compute image features
-        logging.debug(f'preprocessing {images_array.shape[0]} images')
+        logger.debug(f'preprocessing {images_array.shape[0]} images')
         images_array = self.preprocess(images_array)
-        logging.debug(f'computing image features')
+        logger.debug(f'computing image features')
         image_features = self.model.predict(images_array)
 
         # if n_channels is specified, only keep that number of channels
         if self.n_channels:
-            logging.debug(f'truncating to first {self.n_channels} channels')
+            logger.debug(f'truncating to first {self.n_channels} channels')
             image_features = image_features.T[: self.n_channels].T
 
         # reshape output array by flattening each image into a vector of features
         shape = image_features.shape
+        if shape[0] == 1:
+            return image_features.reshape(np.prod(shape[1:]))
         return image_features.reshape(shape[0], np.prod(shape[1:]))
 
     def predict(self, images_array):
-        ''' alias for get_features to more closely match scikit-learn interface '''
+        ''' alias for get_features or get_objects to more closely match scikit-learn interface '''
+        if images_array.ndim == 3:
+            images_array = images_array[None, :, :, :]
+
+        if self.include_top:
+            return [self.get_objects(img) for img in images_array]
+
         return self.get_features(images_array)

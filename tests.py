@@ -17,9 +17,8 @@ def test_features_from_url():
         features = model.get_features_from_url(test_urls[0])
         assert features is not None
         assert isinstance(features, np.ndarray)
-        assert features.ndim == 2
-        assert features.shape[1] > 1
-        assert features.shape[0] == 1
+        assert features.ndim == 1
+        assert features.shape[0] > 1
         assert str(features.dtype)[:5] == 'float'
 
         # test non-batch with failing url
@@ -44,15 +43,15 @@ def test_features_from_url_batch():
             assert str(features.dtype)[:5] == 'float'
 
 
-def test_cache_serialization():
-    features, urls = full_model.get_features_from_url_batch(test_urls)
-    full_model.save_cache()
+# def test_cache_serialization():
+#     features, urls = full_model.get_features_from_url_batch(test_urls)
+#     full_model.save_cache()
 
-    new_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
-    assert len(new_model.cache) > 0
-    # pool_model = ImagenetModel(model='mobilenet_v2', pooling='max')
-    # = ImagenetModel()
-    print(new_model.cache)
+#     new_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
+#     assert len(new_model.cache) > 0
+#     # pool_model = ImagenetModel(model='mobilenet_v2', pooling='max')
+#     # = ImagenetModel()
+#     print(new_model.cache)
 
 
 # NOTE obj recog tests dont work when running feature tests above, TODO fix interference from cache
