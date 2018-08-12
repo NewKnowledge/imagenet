@@ -1,7 +1,8 @@
 name: imagenet            
 dependencies:
 - python=3.6
-- numpy>=1.15
+- numpy
+# - numpy>=1.15
 - Pillow
 - requests
 - pytest

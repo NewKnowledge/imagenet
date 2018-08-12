@@ -131,7 +131,7 @@ class ImagenetModel:
         if self.include_top:
             raise Exception('getting features from a classification model with include_top=True is currently not supported')
         # TODO add caching for paths like urls
-        images_array = np.array((image_array_from_path(fpath, target_size=self.target_size) for fpath in image_paths))
+        images_array = np.array([image_array_from_path(fpath, target_size=self.target_size) for fpath in image_paths])
         return self.get_features(images_array)
 
     def get_features_from_url(self, image_url):
@@ -163,8 +163,7 @@ class ImagenetModel:
                      {len(new_urls)} new urls and {len(cached_urls)} cached urls')
         if cached_urls:
             logger.debug(f'loading features for {len(cached_urls)} images from cache')
-            cached_image_features = np.array((self.cache[url] for url in cached_urls))
-            print('cached image feat:', cached_image_features)
+            cached_image_features = np.array([self.cache[url] for url in cached_urls])
             assert cached_image_features.ndim == 2
 
         # remove new urls known to fail

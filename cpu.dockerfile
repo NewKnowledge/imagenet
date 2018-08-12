@@ -21,9 +21,6 @@ COPY environment.yml $HOME/
 RUN conda env create /root/environment.yml
 ENV PATH=$HOME/miniconda3/envs/imagenet/bin:$PATH
 
-# RUN conda env update -f /root/environment.yml && \
-# pip install --ignore-installed --no-deps --upgrade https://github.com/lakshayg/tensorflow-build/releases/download/tf1.9.0-ubuntu16.04-py36/tensorflow-1.9.0-cp36-cp36m-linux_x86_64.whl
-
 # force dockerfile to download imagenet weights (.h5) into the image to avoid download on spin-up or first use
 # RUN python -c "from keras.applications.xception import Xception; Xception(weights='imagenet', include_top=False)"
 # RUN python -c 'from keras.applications.inception_v3 import InceptionV3; InceptionV3()' 
