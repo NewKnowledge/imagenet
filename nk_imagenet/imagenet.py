@@ -6,6 +6,7 @@ import pickle
 import numpy as np
 from cachetools import LRUCache
 from keras.applications import inception_v3, mobilenetv2, xception
+from keras.preprocessing.image import img_to_array
 
 from .utils import image_array_from_path, image_array_from_url, partition
 
@@ -221,6 +222,13 @@ class ImagenetModel:
             return np.array([[]]), []
 
         return image_features, image_urls
+
+    def get_features_from_image(self, image_obj):
+        # TODO refactor utils code to take PIL image objects as well as arrays, urls, filepaths
+        image_obj = image_obj.resize(self.target_size)
+        img_array = img_to_array(image_obj)
+        img_feats = self.predict(img_array)
+        return img_feats.flatten()
 
     def get_features(self, images_array):
         ''' takes a batch of images as a 4-d array and returns the (flattened) imagenet features for those images as a 2-d array '''
