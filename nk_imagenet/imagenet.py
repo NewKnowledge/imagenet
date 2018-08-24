@@ -223,14 +223,15 @@ class ImagenetModel:
 
         return image_features, image_urls
 
-    def get_features_from_image(self, image_obj):
+    def get_features_from_image(self, image_obj, flatten=False):
         # TODO refactor utils code to take PIL image objects as well as arrays, urls, filepaths
         image_obj = image_obj.resize(self.target_size)
         img_array = img_to_array(image_obj)
-        img_feats = self.predict(img_array)
-        return img_feats.flatten()
+        if img_array.ndim == 3:
+            img_array = img_array[None, :, :, :]
+        return self.get_features(img_array, flatten=flatten)
 
-    def get_features(self, images_array):
+    def get_features(self, images_array, flatten=True):
         ''' takes a batch of images as a 4-d array and returns the (flattened) imagenet features for those images as a 2-d array '''
         if self.include_top:
             raise Exception('getting features from a classification model with include_top=True is currently not supported')
@@ -249,11 +250,13 @@ class ImagenetModel:
             logger.debug(f'truncating to first {self.n_channels} channels')
             image_features = image_features.T[: self.n_channels].T
 
-        # reshape output array by flattening each image into a vector of features
-        shape = image_features.shape
-        if shape[0] == 1:
-            return image_features.reshape(np.prod(shape[1:]))
-        return image_features.reshape(shape[0], np.prod(shape[1:]))
+        if flatten:
+            # reshape output array by flattening each image into a vector of features
+            shape = image_features.shape
+            if shape[0] == 1:
+                return image_features.reshape(np.prod(shape[1:]))
+            image_features = image_features.reshape(shape[0], np.prod(shape[1:]))
+        return image_features
 
     def predict(self, images_array):
         ''' alias for get_features or get_objects to more closely match scikit-learn interface '''
