@@ -59,7 +59,7 @@ class ImagenetModel:
         return prediction[0] if input_dim == 3 else prediction
 
 
-class ImagenetObjectRecognizer(ImagenetModel):
+class ImagenetRecognizer(ImagenetModel):
 
     def __init__(self, model='inception_v3', n_objects=10):
         super().__init__(model=model, include_top=True)

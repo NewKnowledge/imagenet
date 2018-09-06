@@ -43,13 +43,14 @@ def image_array_from_url(url, target_size=(299, 299)):
 
 def strip_alpha_channel(image):
     ''' Strip the alpha channel of an image and fill with fill color '''
-    background = Image.new(image.mode[:-1], image.size, '#ffffff')  # TODO is filling with black here a good idea?
+    # TODO is always filling with black here a good idea?
+    background = Image.new(image.mode[:-1], image.size, '#ffffff')
     background.paste(image, image.split()[-1])
     return background
 
 
 def load_image_url(url, target_size=None):
-    ''' downloads image at url, fills transparency, convert to jpeg format, and resamples to target size before returning PIL image object '''
+    ''' downloads image at url, fills transparency, converts to jpeg format, and resamples to target size before returning PIL image object '''
     response = requests_session.get(url)
     with Image.open(io.BytesIO(response.content)) as img:
         # fill transparency if needed
@@ -66,7 +67,7 @@ def load_image_url(url, target_size=None):
 
 
 def save_url_images(image_urls, write_dir='images'):
-    ''' takes a list of urls then downloads and saves the image files to write_dir '''
+    ''' takes a list of urls then downloads and saves the image files to `write_dir` '''
     if not os.path.isdir(write_dir):
         logging.info(f'creating directory for downloaded images: {write_dir}')
         os.makedirs(write_dir)
