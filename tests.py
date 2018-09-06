@@ -1,10 +1,10 @@
-from nk_imagenet import ImagenetModel, image_array_from_path
+from nk_imagenet.imagenet import ImagenetEverything, image_array_from_path
 import numpy as np
 from glob import glob
 import time
 
-full_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
-pool_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
+full_model = ImagenetEverything(model='mobilenet_v2', cache_dir='/app')
+pool_model = ImagenetEverything(model='mobilenet_v2', cache_dir='/app')
 
 
 test_urls = ["https://i.redd.it/677lnhjyt5dz.jpg", "https://i.redd.it/c2kkan9uky7z.png",

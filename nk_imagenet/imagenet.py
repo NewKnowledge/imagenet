@@ -326,7 +326,6 @@ class ImagenetEverything:
         return image_features, image_urls
 
     def get_features_from_image(self, image_obj, flatten=False):
-        # TODO refactor utils code to take PIL image objects as well as arrays, urls, filepaths
         image_obj = image_obj.resize(self.target_size)
         img_array = img_to_array(image_obj)
         if img_array.ndim == 3:
