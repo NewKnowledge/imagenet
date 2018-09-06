@@ -1,32 +1,15 @@
-FROM ubuntu:16.04
+FROM continuumio/miniconda3:latest
 
-ENV HOME=/root
+ENV HOME=/app
 WORKDIR $HOME
 
-RUN apt-get update && apt-get install -y \
-    curl \
-    build-essential \
-    git
-
-# install miniconda
-ENV PATH=$HOME/miniconda3/bin:$PATH 
-RUN curl https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh > /root/Miniconda3-latest-Linux-x86_64.sh && \
-    chmod u+x /root/Miniconda3-latest-Linux-x86_64.sh && \
-    /root/Miniconda3-latest-Linux-x86_64.sh -b && \
-    rm /root/Miniconda3-latest-Linux-x86_64.sh && \
-    conda update -n base conda
-
-# install packages listed in environment.yml including cpu-optimized tensorflow
 COPY environment.yml $HOME/
-RUN conda env create /root/environment.yml
-ENV PATH=$HOME/miniconda3/envs/imagenet/bin:$PATH
+RUN conda update -n base conda && \
+    conda env update -f /app/environment.yml
 
-# force dockerfile to download imagenet weights (.h5) into the image to avoid download on spin-up or first use
-# RUN python -c "from keras.applications.xception import Xception; Xception(weights='imagenet', include_top=False)"
-# RUN python -c 'from keras.applications.inception_v3 import InceptionV3; InceptionV3()' 
-RUN python -c "from keras.applications.mobilenetv2 import MobileNetV2; MobileNetV2(weights='imagenet', include_top=False)" 
+RUN python -c 'from keras.applications.inception_v3 import InceptionV3; InceptionV3()' 
 
 COPY . $HOME/
-RUN pip install --no-deps -e . 
+RUN pip install -e .
 
 CMD ["pytest", "--color=yes", "-s", "tests.py"]

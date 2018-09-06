@@ -40,6 +40,7 @@ class ImagenetModel:
         self.preprocess = MODEL_CLASSES[model].preprocess_input
 
     def predict(self, images_array):
+        ''' preprocesses the image and computes the prediction. this function works for both object recognition and featurization '''
         input_dim = images_array.ndim
         if input_dim == 3:
             images_array = images_array[None, :, :, :]  # add a dimension, making batch size 1
