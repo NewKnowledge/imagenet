@@ -92,6 +92,10 @@ class ImagenetFeaturizer(ImagenetModel):
         # set output shape param for convenient inspection
         self.output_shape = (*output.shape[1:3], n_channels) if n_channels else output.shape[1:]
 
+    @property
+    def output_dim(self):
+        return np.prod(self.output_shape)
+
     def get_features(self, images_array, flatten=True):
         ''' takes a batch of images as a 4-d array and returns the imagenet features for those images as a numpy array '''
 

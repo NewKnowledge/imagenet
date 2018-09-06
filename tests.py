@@ -1,4 +1,4 @@
-from nk_imagenet.imagenet import ImagenetEverything, image_array_from_path
+from nk_imagenet.imagenet import ImagenetEverything, image_array_from_path, ImagenetFeaturizer, ImagenetObjectRecognizer
 import numpy as np
 from glob import glob
 import time
@@ -28,7 +28,7 @@ def test_features_from_url():
 
 def test_features_from_url_batch():
 
-    # call method with all new, mixed new and cached, all cached urls and a url that will fail
+    # call method with all new, mixed new and cached, all cached urls, and a url that will fail
     for urls in [test_urls[:2], test_urls, test_urls + ['http://www.fake-url.com']]:
         for model in [full_model, pool_model]:
             features, urls = model.get_features_from_url_batch(urls)
@@ -42,6 +42,22 @@ def test_features_from_url_batch():
             assert features.shape[1] > 1
             assert str(features.dtype)[:5] == 'float'
 
+
+def test_featurization():
+    model = ImagenetFeaturizer()
+    dim = model.output_dim
+    images_array = np.random.randint(0, 255, size=(4, 299, 299, 3))
+    feats = model.get_features(images_array)
+    assert feats.shape == (4, dim)
+    print(feats)
+
+
+def test_object_detection():
+    pass
+
+
+if __name__ == '__main__':
+    test_featurization()
 
 # def test_cache_serialization():
 #     features, urls = full_model.get_features_from_url_batch(test_urls)
