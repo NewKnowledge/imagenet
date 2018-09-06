@@ -13,14 +13,6 @@ from PIL import Image
 USE_REQUEST_SESSION = os.environ.get('USE_REQUESTS_SESSION', "True")
 requests_session = requests.Session() if USE_REQUEST_SESSION == "True" else requests
 
-DEPLOYMENT = os.environ.get("DEPLOYMENT", "dev")
-LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.DEBUG if DEPLOYMENT == "dev" else logging.INFO)
-
-logging.basicConfig(
-    level=LOG_LEVEL,
-    stream=sys.stdout,
-)
-
 
 def partition(pred, iterable, as_list=False):
     'Use a predicate to partition entries into false entries and true entries'
@@ -28,6 +20,12 @@ def partition(pred, iterable, as_list=False):
     if as_list:
         return list(filterfalse(pred, t1)), list(filter(pred, t2))
     return filterfalse(pred, t1), filter(pred, t2)
+
+
+def image_array_from_obj(image_obj, target_size=(299, 299)):
+    ''' convert PIL image object into an array '''
+    image_obj = image_obj.resize(target_size)
+    return img_to_array(image_obj)
 
 
 def image_array_from_path(fpath, target_size=(299, 299)):
