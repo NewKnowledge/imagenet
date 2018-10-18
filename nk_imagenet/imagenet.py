@@ -12,10 +12,117 @@ from .utils import image_array_from_path, image_array_from_url, partition
 
 logger = logging.getLogger(__name__)
 
+# TODO set target size indep of model?
+
+MODEL_CLASSES = {
+    'xception':  xception,
+    'inception_v3': inception_v3,
+    'mobilenet_v2': mobilenetv2,
+}
+
 
 class ImagenetModel:
 
-    ''' A class for featurizing images using pre-trained neural nets '''
+    def __init__(self, model='inception_v3', include_top=False, pooling=None):
+        # set self.model and target_size based on input model string
+        if model == 'xception':
+            self.model = xception.Xception(weights='imagenet', include_top=include_top, pooling=pooling)
+            self.target_size = (299, 299)
+        elif model == 'inception_v3':
+            self.model = inception_v3.InceptionV3(weights='imagenet', include_top=include_top, pooling=pooling)
+            self.target_size = (299, 299)
+        elif model == 'mobilenet_v2':
+            self.model = mobilenetv2.MobileNetV2(weights='imagenet', include_top=include_top, pooling=pooling)
+            self.target_size = (244, 244)
+        else:
+            raise Exception('model option not implemented')
+
+        self.preprocess = MODEL_CLASSES[model].preprocess_input
+
+    def predict(self, images_array):
+        ''' preprocesses the image and computes the prediction. this function works for both object recognition and featurization '''
+        input_dim = images_array.ndim
+        if input_dim == 3:
+            images_array = images_array[None, :, :, :]  # add a dimension, making batch size 1
+        elif input_dim != 4:
+            raise Exception(
+                'invalid input shape for images_array, expects a 3d (single sample) or 4d (first dim is batch size) array')
+
+        # preprocess
+        logger.debug(f'preprocessing {images_array.shape[0]} images')
+        images_array = self.preprocess(images_array)
+
+        # compute prediction
+        logger.debug(f'computing prediction')
+        prediction = self.model.predict(images_array)
+
+        return prediction[0] if input_dim == 3 else prediction
+
+
+class ImagenetRecognizer(ImagenetModel):
+
+    def __init__(self, model='inception_v3', n_objects=10):
+        super().__init__(model=model, include_top=True)
+
+        self.n_objects = n_objects
+        self.decode = MODEL_CLASSES[model].decode_predictions
+
+        # NOTE: we force the imagenet model to load in the same scope as the functions using it to avoid tensorflow weirdness
+        output = self.model.predict(np.zeros((1, *self.target_size, 3)))
+        logger.debug(f'object prediction output: {output}')
+
+    def get_objects(self, images_array):
+        ''' provided as an array '''
+        ''' takes a batch of images as a 4-d array and returns the detected objects as a list of {object: score} dicts '''
+        logger.debug(f'recognizing objects')
+        predictions = super().predict(images_array)
+        predictions = self.decode(predictions, top=self.n_objects)
+
+        # return list of {object: score} dicts, one dict per image (n_objects total items)
+        return [{obj[1]: obj[2] for obj in objects} for objects in predictions]
+
+
+class ImagenetFeaturizer(ImagenetModel):
+
+    def __init__(self, model='inception_v3', pooling=None, n_channels=None):
+        super().__init__(model=model, include_top=False, pooling=pooling)
+        self.n_channels = n_channels
+
+        # NOTE: we force the imagenet model to load in the same scope as the functions using it to avoid tensorflow weirdness
+        output = self.model.predict(np.zeros((1, *self.target_size, 3)))
+        # set output shape param for convenient inspection
+        self.output_shape = (*output.shape[1:3], n_channels) if n_channels else output.shape[1:]
+
+    @property
+    def output_dim(self):
+        return np.prod(self.output_shape)
+
+    def get_features(self, images_array, flatten=True):
+        ''' takes a batch of images as a 4-d array and returns the imagenet features for those images as a numpy array '''
+
+        # preprocess and compute image features
+        image_features = super().predict(images_array)
+
+        # if n_channels is specified, only keep that number of channels
+        if self.n_channels:
+            logger.debug(f'truncating last dimension of array to only use the first {self.n_channels} channels')
+            # transpose to slice the last dim (regardless of input dim), then transpose back
+            image_features = image_features.T[:self.n_channels].T
+
+        if flatten:
+            # reshape output array by flattening each image into a vector of features
+            shape = image_features.shape
+            if image_features.ndim == 4:
+                image_features = image_features.reshape(shape[0], np.prod(shape[1:]))
+            elif image_features.ndim == 3:
+                image_features = image_features.reshape(np.prod(shape))
+
+        return image_features
+
+
+class ImagenetEverything:
+
+    ''' A class for featurizing images using pre-trained neural nets, includes obj recognition and featurization for image arrays, files, or urls. There is an optional url->array cache that is persistent if saved manually. '''
 
     def __init__(self, model='inception_v3', include_top=False, pooling=None, n_channels=None, n_objects=None, cache_size=int(1e4), cache_dir=None):
 
@@ -224,7 +331,6 @@ class ImagenetModel:
         return image_features, image_urls
 
     def get_features_from_image(self, image_obj, flatten=False):
-        # TODO refactor utils code to take PIL image objects as well as arrays, urls, filepaths
         image_obj = image_obj.resize(self.target_size)
         img_array = img_to_array(image_obj)
         if img_array.ndim == 3:

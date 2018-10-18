@@ -1,10 +1,10 @@
-from nk_imagenet import ImagenetModel, image_array_from_path
+from nk_imagenet import ImagenetEverything, image_array_from_path, ImagenetFeaturizer, ImagenetRecognizer
 import numpy as np
 from glob import glob
 import time
 
-full_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
-pool_model = ImagenetModel(model='mobilenet_v2', cache_dir='/app')
+full_model = ImagenetEverything(cache_dir='/app')
+pool_model = ImagenetEverything(cache_dir='/app')
 
 
 test_urls = ["https://i.redd.it/677lnhjyt5dz.jpg", "https://i.redd.it/c2kkan9uky7z.png",
@@ -28,7 +28,7 @@ def test_features_from_url():
 
 def test_features_from_url_batch():
 
-    # call method with all new, mixed new and cached, all cached urls and a url that will fail
+    # call method with all new, mixed new and cached, all cached urls, and a url that will fail
     for urls in [test_urls[:2], test_urls, test_urls + ['http://www.fake-url.com']]:
         for model in [full_model, pool_model]:
             features, urls = model.get_features_from_url_batch(urls)
@@ -42,6 +42,49 @@ def test_features_from_url_batch():
             assert features.shape[1] > 1
             assert str(features.dtype)[:5] == 'float'
 
+
+def test_featurization():
+    model = ImagenetFeaturizer()  # TODO add tests for different init params
+    images_array = np.random.randint(0, 255, size=(4, 299, 299, 3))
+
+    # should return the flattened array by default
+    feats = model.get_features(images_array)
+    assert isinstance(feats, np.ndarray)
+    assert isinstance(feats.flatten()[0], np.float32)
+    assert feats.shape == (4, model.output_dim)
+
+    # should return the unflattened array if flatten=False
+    feats = model.get_features(images_array, flatten=False)
+    assert isinstance(feats, np.ndarray)
+    assert isinstance(feats.flatten()[0], np.float32)
+    assert feats.shape == (4, *model.output_shape)
+
+    feats = model.get_features(images_array[0])
+    assert isinstance(feats, np.ndarray)
+    assert isinstance(feats.flatten()[0], np.float32)
+    assert feats.shape == (model.output_dim,)
+
+    feats = model.get_features(images_array[0], flatten=False)
+    assert isinstance(feats, np.ndarray)
+    assert isinstance(feats.flatten()[0], np.float32)
+    assert feats.shape == model.output_shape
+
+
+def test_object_detection(n_objects=5, n_samples=4):
+    model = ImagenetRecognizer(n_objects=n_objects)
+    images_array = np.random.randint(0, 255, size=(n_samples, 299, 299, 3))
+
+    # should return a list of dicts with one dict per sample and n_objects per dict as {obj_name: score} key, value pairs
+    objs = model.get_objects(images_array)
+    assert isinstance(objs, list) and len(objs) == n_samples
+    assert isinstance(objs[0], dict) and len(objs[0]) == n_objects
+    assert isinstance(list(objs[0].keys())[0], str)
+    assert isinstance(list(objs[0].values())[0], np.float32)
+
+
+if __name__ == '__main__':
+    test_object_detection()
+    # test_featurization()
 
 # def test_cache_serialization():
 #     features, urls = full_model.get_features_from_url_batch(test_urls)

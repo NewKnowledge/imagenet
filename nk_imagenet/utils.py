@@ -13,14 +13,6 @@ from PIL import Image
 USE_REQUEST_SESSION = os.environ.get('USE_REQUESTS_SESSION', "True")
 requests_session = requests.Session() if USE_REQUEST_SESSION == "True" else requests
 
-DEPLOYMENT = os.environ.get("DEPLOYMENT", "dev")
-LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.DEBUG if DEPLOYMENT == "dev" else logging.INFO)
-
-logging.basicConfig(
-    level=LOG_LEVEL,
-    stream=sys.stdout,
-)
-
 
 def partition(pred, iterable, as_list=False):
     'Use a predicate to partition entries into false entries and true entries'
@@ -28,6 +20,12 @@ def partition(pred, iterable, as_list=False):
     if as_list:
         return list(filterfalse(pred, t1)), list(filter(pred, t2))
     return filterfalse(pred, t1), filter(pred, t2)
+
+
+def image_array_from_obj(image_obj, target_size=(299, 299)):
+    ''' convert PIL image object into an array '''
+    image_obj = image_obj.resize(target_size)
+    return img_to_array(image_obj)
 
 
 def image_array_from_path(fpath, target_size=(299, 299)):
@@ -45,13 +43,14 @@ def image_array_from_url(url, target_size=(299, 299)):
 
 def strip_alpha_channel(image):
     ''' Strip the alpha channel of an image and fill with fill color '''
-    background = Image.new(image.mode[:-1], image.size, '#ffffff')  # TODO is filling with black here a good idea?
+    # TODO is always filling with black here a good idea?
+    background = Image.new(image.mode[:-1], image.size, '#ffffff')
     background.paste(image, image.split()[-1])
     return background
 
 
 def load_image_url(url, target_size=None):
-    ''' downloads image at url, fills transparency, convert to jpeg format, and resamples to target size before returning PIL image object '''
+    ''' downloads image at url, fills transparency, converts to jpeg format, and resamples to target size before returning PIL image object '''
     response = requests_session.get(url)
     with Image.open(io.BytesIO(response.content)) as img:
         # fill transparency if needed
@@ -68,7 +67,7 @@ def load_image_url(url, target_size=None):
 
 
 def save_url_images(image_urls, write_dir='images'):
-    ''' takes a list of urls then downloads and saves the image files to write_dir '''
+    ''' takes a list of urls then downloads and saves the image files to `write_dir` '''
     if not os.path.isdir(write_dir):
         logging.info(f'creating directory for downloaded images: {write_dir}')
         os.makedirs(write_dir)

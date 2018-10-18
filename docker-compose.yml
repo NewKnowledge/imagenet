@@ -6,8 +6,9 @@ networks:
 services:
 
   imagenet:
+    # build: .
     build:
-      dockerfile: cpu.dockerfile
+      dockerfile: conda.dockerfile
       context: . 
     networks:
       - backend
