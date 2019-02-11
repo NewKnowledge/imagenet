@@ -5,7 +5,7 @@ import pickle
 
 import numpy as np
 from cachetools import LRUCache
-from keras.applications import inception_v3, mobilenetv2, xception
+from keras.applications import inception_v3, mobilenetv2, xception, vgg19
 from keras.preprocessing.image import img_to_array
 
 from .utils import image_array_from_path, image_array_from_url, partition
@@ -18,6 +18,7 @@ MODEL_CLASSES = {
     'xception':  xception,
     'inception_v3': inception_v3,
     'mobilenet_v2': mobilenetv2,
+    'vgg19': vgg19,
 }
 
 
@@ -33,6 +34,9 @@ class ImagenetModel:
             self.target_size = (299, 299)
         elif model == 'mobilenet_v2':
             self.model = mobilenetv2.MobileNetV2(weights='imagenet', include_top=include_top, pooling=pooling)
+            self.target_size = (244, 244)
+        elif model == 'vgg19':
+            self.model = vgg19.VGG19(weights='imagenet', include_top=include_top, pooling=pooling)
             self.target_size = (244, 244)
         else:
             raise Exception('model option not implemented')
@@ -84,8 +88,8 @@ class ImagenetRecognizer(ImagenetModel):
 
 class ImagenetFeaturizer(ImagenetModel):
 
-    def __init__(self, model='inception_v3', pooling=None, n_channels=None):
-        super().__init__(model=model, include_top=False, pooling=pooling)
+    def __init__(self, model='vgg19', include_top=False, pooling='avg', n_channels=None):
+        super().__init__(model=model, include_top=include_top, pooling=pooling)
         self.n_channels = n_channels
 
         # NOTE: we force the imagenet model to load in the same scope as the functions using it to avoid tensorflow weirdness
@@ -104,7 +108,7 @@ class ImagenetFeaturizer(ImagenetModel):
         image_features = super().predict(images_array)
 
         # if n_channels is specified, only keep that number of channels
-        if self.n_channels:
+        if self.n_channels is not None:
             logger.debug(f'truncating last dimension of array to only use the first {self.n_channels} channels')
             # transpose to slice the last dim (regardless of input dim), then transpose back
             image_features = image_features.T[:self.n_channels].T
