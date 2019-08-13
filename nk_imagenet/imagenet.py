@@ -27,7 +27,7 @@ class ImagenetModel:
 
     ''' A class for featurizing images using pre-trained neural nets '''
 
-    def __init__(self, include_top=False, pooling=None, n_channels=None, cache_size=int(1e4), model='inception_v3', cache_dir=None, n_objects=None):
+    def __init__(self, include_top=False, pooling=None, n_channels=None, cache_size=int(1e4), model='inception_v3', weights = 'imagenet', cache_dir=None, n_objects=None):
 
         self.include_top = include_top  # determines if used for classification or featurization, TODO separate into two classes?
         self.n_channels = n_channels
@@ -54,7 +54,7 @@ class ImagenetModel:
             self.cache = LRUCache(cache_size)
 
         if model == 'xception':
-            self.model = xception.Xception(weights='imagenet', include_top=include_top, pooling=pooling)
+            self.model = xception.Xception(weights=weights, include_top=include_top, pooling=pooling)
             self.preprocess = xception.preprocess_input
             self.target_size = (299, 299)
             if include_top:
@@ -62,7 +62,7 @@ class ImagenetModel:
             else:
                 self.output_dim = (n_channels if n_channels else 2048) * (1 if pooling else 10**2)
         elif model == 'inception_v3':
-            self.model = inception_v3.InceptionV3(weights='imagenet', include_top=include_top, pooling=pooling)
+            self.model = inception_v3.InceptionV3(weights=weights, include_top=include_top, pooling=pooling)
             self.preprocess = inception_v3.preprocess_input
             self.target_size = (299, 299)
             if include_top:
@@ -70,7 +70,7 @@ class ImagenetModel:
             else:
                 self.output_dim = (n_channels if n_channels else 2048) * (1 if pooling else 8**2)
         elif model == 'mobilenet_v2':
-            self.model = mobilenetv2.MobileNetV2(weights='imagenet', include_top=include_top, pooling=pooling)
+            self.model = mobilenetv2.MobileNetV2(weights=weights, include_top=include_top, pooling=pooling)
             self.preprocess = mobilenetv2.preprocess_input
             self.target_size = (244, 244)
             if include_top:
