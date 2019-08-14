@@ -284,7 +284,7 @@ class ImagenetModel:
         return self.get_features(images_array)
 
     def finetune(self, 
-                images_array, 
+                image_paths, 
                 labels, 
                 pooling = 'avg',
                 nclasses = 2,
@@ -299,13 +299,16 @@ class ImagenetModel:
             First finetunes last layer then freezes bottom N layers and retrains the rest
         '''
 
+         # preprocess images
+        images_array = np.array([image_array_from_path(fpath, target_size=self.target_size) for fpath in image_paths[:1000]])
+        logging.debug(f'preprocessing {images_array.shape[0]} images')
         if images_array.ndim != 4:
             raise Exception('invalid input shape for images_array, expects a 4d array')
-        
-        # preprocess images
-        logging.debug(f'preprocessing {images_array.shape[0]} images')
         images_array = self.preprocess(images_array)
 
+        # transform labels to categorical variable
+        labels = to_categorical(labels)
+        
         # create new model for finetuned classification
         out = self.model.output
         if self.pooling is None:
