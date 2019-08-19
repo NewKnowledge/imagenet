@@ -10,10 +10,11 @@ from keras.applications import inception_v3, mobilenetv2, xception
 from keras.models import Model
 from keras.layers import Dense, GlobalAveragePooling2D, GlobalMaxPooling2D
 from keras.optimizers import SGD
+from keras.utils import to_categorical
 
 from .utils import image_array_from_path, image_array_from_url, partition
 
-# NUM_OBJECTS = int(os.getenv('NUM_OBJECTS', '5'))
+# NUM_OBJECTS = int(os.ggitenv('NUM_OBJECTS', '5'))
 
 logging.basicConfig(
     format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
@@ -300,7 +301,7 @@ class ImagenetModel:
         '''
 
          # preprocess images
-        images_array = np.array([image_array_from_path(fpath, target_size=self.target_size) for fpath in image_paths[:1000]])
+        images_array = np.array([image_array_from_path(fpath, target_size=self.target_size) for fpath in image_paths])
         logging.debug(f'preprocessing {images_array.shape[0]} images')
         if images_array.ndim != 4:
             raise Exception('invalid input shape for images_array, expects a 4d array')
