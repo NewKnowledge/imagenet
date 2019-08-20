@@ -345,12 +345,12 @@ class ImagenetModel:
     def finetuned_predict(self, images_array):
         ''' Uses the finetuned model to predict on an image array. Returns array of softmax prediction probabilities 
         '''    
-
+        
+        # preprocess images
+        images_array = np.array([image_array_from_path(fpath, target_size=self.target_size) for fpath in image_paths])
+        logging.debug(f'preprocessing {images_array.shape[0]} images')
         if images_array.ndim != 4:
             raise Exception('invalid input shape for images_array, expects a 4d array')
-
-        # preprocess image array
-        logging.debug(f'preprocessing {images_array.shape[0]} images')
         images_array = self.preprocess(images_array)
 
         return self.finetune_model.predict(images_array)
