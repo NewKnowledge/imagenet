@@ -1,8 +1,12 @@
 import numpy as np
 import logging
+import os
 
 from keras.layers import Dense, GlobalAveragePooling2D, GlobalMaxPooling2D
+from keras.applications import inception_v3, mobilenetv2, xception
 from keras.utils import to_categorical
+from keras.models import Model
+from keras.optimizers import SGD
 from .utils import image_array_from_path
 
 logging.basicConfig(
@@ -126,3 +130,13 @@ class model_finetuning:
         images_array = self.preprocess(images_array)
 
         return self.finetune_model.predict(images_array)
+
+if __name__ == '__main__':
+    image_path = '/home/alexmably/images/'
+    labels = [0,0,0,1]
+    images = []
+    for r, d, f in os.walk(image_path):
+        image_paths = np.array([os.path.join(r, file) for file in f])
+    client = model_finetuning()
+    client.finetune(image_paths, labels)
+    print(client.finetune_predict(image_paths))
