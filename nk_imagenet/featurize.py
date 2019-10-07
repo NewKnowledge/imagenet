@@ -2,7 +2,7 @@
 
 import logging
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 
 import numpy as np
 
@@ -94,16 +94,11 @@ class Featurize:
 
 if __name__ == "__main__":
     image_path = '/home/alexmably/images/'
-    images = []
     for r, d, f in os.walk(image_path):
-        for file in f:    
-            image = np.array(Image.open(os.path.join(r, file)))
-            images.append(image)
-   
-    #image = Image.open(image_path)
-    #a = np.array(image)
-    im = np.array(images)
-    print(im.shape)
+        images = [np.array(Image.open(os.path.join(r, file))) for file in f] 
+    
+    im = np.stack(images, axis=0)
+     
     out = Featurize()
 
     print(out.get_features(im))
