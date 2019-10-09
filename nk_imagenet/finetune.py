@@ -15,7 +15,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ])
 
-class model_finetuning:
+class Finetuning:
 
     ''' 
     Functions used to finetune the Imagenet model iteratively on a smaller set of images with (potentially) a smaller set of classes
@@ -137,6 +137,6 @@ if __name__ == '__main__':
     images = []
     for r, d, f in os.walk(image_path):
         image_paths = np.array([os.path.join(r, file) for file in f])
-    client = model_finetuning()
+    client = Finetuning()
     client.finetune(image_paths, labels)
     print(client.finetune_predict(image_paths))
