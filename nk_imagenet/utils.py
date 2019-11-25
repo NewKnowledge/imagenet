@@ -6,7 +6,7 @@ from itertools import filterfalse, tee
 from urllib.parse import urlsplit
 
 import requests
-from keras.preprocessing.image import img_to_array, load_img
+from tensorflow.keras.preprocessing.image import img_to_array, load_img
 from PIL import Image
 
 requests_session = requests.Session() if os.environ.get('USE_REQUESTS_SESSION') == "True" else requests
