@@ -361,9 +361,11 @@ class ImagenetModel:
         shape = image_features.shape
         return image_features.reshape(shape[0], np.prod(shape[1:]))
 
-    def predict(self, images_array):
+    def predict(self, images_array, use_batch=False, batch_size=512):
         """ alias for get_features to more closely match scikit-learn interface """
-        return self.get_features(images_array)
+        return self.get_features(
+            images_array, use_batch=use_batch, batch_size=batch_size
+        )
 
     def finetune(
         self,
