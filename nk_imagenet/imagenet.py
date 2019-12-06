@@ -103,13 +103,13 @@ class ImagenetModel:
                     1 if pooling else 8 ** 2
                 )
         elif model == "mobilenet_v2":
-            self.model = mobilenetv2.MobileNetV2(
+            self.model = mobilenet_v2.MobileNetV2(
                 weights=weights, include_top=include_top, pooling=pooling
             )
-            self.preprocess = mobilenetv2.preprocess_input
+            self.preprocess = mobilenet_v2.preprocess_input
             self.target_size = (224, 224)
             if include_top:
-                self.decode = mobilenetv2.decode_predictions
+                self.decode = mobilenet_v2.decode_predictions
             else:
                 self.output_dim = (n_channels if n_channels else 1280) * (
                     1 if pooling else 7 ** 2
