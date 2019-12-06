@@ -6,11 +6,17 @@ import pickle
 
 import numpy as np
 from cachetools import LRUCache
-from keras.applications import inception_v3, mobilenetv2, xception, vgg19, vgg16
-from keras.models import Model
-from keras.layers import Dense, GlobalAveragePooling2D, GlobalMaxPooling2D
-from keras.optimizers import SGD
-from keras.utils import to_categorical
+from tensorflow.keras.applications import (
+    inception_v3,
+    mobilenet_v2,
+    xception,
+    vgg19,
+    vgg16,
+)
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, GlobalMaxPooling2D
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.utils import to_categorical
 
 from .utils import image_array_from_path, image_array_from_url, partition
 
@@ -101,7 +107,7 @@ class ImagenetModel:
                 weights=weights, include_top=include_top, pooling=pooling
             )
             self.preprocess = mobilenetv2.preprocess_input
-            self.target_size = (244, 244)
+            self.target_size = (224, 224)
             if include_top:
                 self.decode = mobilenetv2.decode_predictions
             else:
@@ -111,7 +117,7 @@ class ImagenetModel:
         elif model == "vgg19":
             self.vgg19.VGG19(weights=weights, include_top=include_top, pooling=pooling)
             self.preprocess = vgg19.preprocess_input
-            self.target_size = (244, 244)
+            self.target_size = (224, 224)
             if include_top:
                 self.decode = vgg19.decode_predictions
             else:
@@ -119,7 +125,7 @@ class ImagenetModel:
         elif model == "vgg16":
             self.vgg16.VGG16(weights=weights, include_top=include_top, pooling=pooling)
             self.preprocess = vgg16.preprocess_input
-            self.target_size = (244, 244)
+            self.target_size = (224, 224)
             if include_top:
                 self.decode = vgg16.decode_predictions
             else:
