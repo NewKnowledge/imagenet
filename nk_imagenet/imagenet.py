@@ -344,11 +344,10 @@ class ImagenetModel:
         logging.debug(f"preprocessing {images_array.shape[0]} images")
         images_array = self.preprocess(images_array)
         logging.debug(f"computing image features")
-        image_features = (
-            self.model.predict_on_batch(images_array)
-            if use_batch
-            else self.model.predict(images_array, batch_size=batch_size)
-        )
+        if use_batch:
+            image_features = self.model.predict_on_batch(images_array)
+        else:
+            image_features = self.model.predict(images_array, batch_size=batch_size)
         if self.include_top:
             return self.decode(image_features)
 
