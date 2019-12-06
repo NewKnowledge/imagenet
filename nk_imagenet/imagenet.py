@@ -6,7 +6,7 @@ import pickle
 
 import numpy as np
 from cachetools import LRUCache
-from keras.applications import inception_v3, mobilenetv2, xception
+from keras.applications import inception_v3, mobilenetv2, xception, vgg19, vgg16
 from keras.models import Model
 from keras.layers import Dense, GlobalAveragePooling2D, GlobalMaxPooling2D
 from keras.optimizers import SGD
@@ -108,6 +108,22 @@ class ImagenetModel:
                 self.output_dim = (n_channels if n_channels else 1280) * (
                     1 if pooling else 7 ** 2
                 )
+        elif model == "vgg19":
+            self.vgg19.VGG19(weights=weights, include_top=include_top, pooling=pooling)
+            self.preprocess = vgg19.preprocess_input
+            self.target_size = (244, 244)
+            if include_top:
+                self.decode = vgg19.decode_predictions
+            else:
+                raise Exception("Feature Output not implemented for VGG19")
+        elif model == "vgg16":
+            self.vgg16.VGG16(weights=weights, include_top=include_top, pooling=pooling)
+            self.preprocess = vgg16.preprocess_input
+            self.target_size = (244, 244)
+            if include_top:
+                self.decode = vgg16.decode_predictions
+            else:
+                raise Exception("Feature Output not implemented for VGG19")
         else:
             raise Exception("model option not implemented")
 
@@ -318,7 +334,7 @@ class ImagenetModel:
 
         return image_features, image_urls
 
-    def get_features(self, images_array):
+    def get_features(self, images_array, use_batch=False, batch_size=512):
         """ takes a batch of images as a 4-d array and returns the (flattened) imagenet features for those images as a 2-d array """
 
         if images_array.ndim != 4:
@@ -328,7 +344,11 @@ class ImagenetModel:
         logging.debug(f"preprocessing {images_array.shape[0]} images")
         images_array = self.preprocess(images_array)
         logging.debug(f"computing image features")
-        image_features = self.model.predict(images_array)
+        image_features = (
+            self.model.predict_on_batch(images_array)
+            if use_batch
+            else self.model.predict(images_array, batch_size=batch_size)
+        )
         if self.include_top:
             return self.decode(image_features)
 

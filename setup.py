@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="nk_imagenet",
-    version="1.2.0",
+    version="1.3.0",
     description="Interface for using pretrained imagenet models to generate features or object predictions",
     packages=["nk_imagenet"],
     include_package_data=True,
