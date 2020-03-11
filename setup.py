@@ -13,5 +13,5 @@ setup(name='nk_imagenet',
           'Pillow >= 5.1.0',
           'pytest >= 3.6.2',
           'requests',
-          'tensorflow-gpu <= 1.12.2',
+          'tensorflow-gpu <= 1.15.2',
       ])
