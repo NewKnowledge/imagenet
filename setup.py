@@ -9,9 +9,9 @@ setup(name='nk_imagenet',
       install_requires=[
           'cachetools >= 2.1.0',
           'Keras == 2.2.4',
-          'numpy == 1.15.4',
+          'numpy',
           'Pillow >= 5.1.0',
           'pytest >= 3.6.2',
-          'requests == 2.19.1',
+          'requests',
           'tensorflow-gpu <= 1.12.2',
       ])
